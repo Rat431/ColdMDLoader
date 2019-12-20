@@ -10,6 +10,7 @@
 #include <map>
 #include <mutex>
 #include <tlhelp32.h>
+#include <psapi.h>
 
 #define REMOTECODEF _stdcall
 #define STANDARD_INJECTION 1
@@ -79,6 +80,7 @@ namespace CMDLoader_Service
 	bool RetrieveProcessHandleByName(const wchar_t* InPName, HANDLE* OutHandle, int32_t* OutErrorCode);
 	bool RetrieveModuleInfoByID(ModuleMap_Info* OutputInfo, int32_t MID, int32_t* OutErrorCode);
 	bool RetrieveModuleIDByInfo(ModuleMap_Info* InputInfo, int32_t* OutMID, int32_t* OutErrorCode);
+	bool RetrieveRunningProcessesList(std::multimap<DWORD, std::string> &DataList);
 
 	// Process helpers
 	bool StartANewProcess(const char* InPName, char* InPCommandLine, PROCESS_INFORMATION* OutProcessInfo, int32_t* OutErrorCode);

@@ -901,6 +901,56 @@ namespace CMDLoader_Service
 		CMDLoader_Vars::Thread.unlock();
 		return false;
 	}
+	bool RetrieveRunningProcessesList(std::multimap<DWORD, std::string> &DataList)
+	{
+		// Vars
+		DWORD aProcesses[1024], cbNeeded, cProcesses;
+		HANDLE hProcess = INVALID_HANDLE_VALUE;
+		unsigned int i;
+
+		// Thread safe 
+		CMDLoader_Vars::Thread.lock();
+
+		// Enum
+		if (EnumProcesses(aProcesses, sizeof(aProcesses), &cbNeeded))
+		{
+			if (DataList.size() > 0)
+				DataList.clear();
+
+			cProcesses = cbNeeded / sizeof(DWORD);
+			for (i = 0; i < cProcesses; i++)
+			{
+				if (aProcesses[i] != 0)
+				{
+					CHAR ProcNameFormat[MAX_PATH] = { "Unknown" };
+					CHAR OutString[1024] = { 0 };
+
+					hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
+						PROCESS_VM_READ,
+						FALSE, aProcesses[i]);
+					if (hProcess != NULL)
+					{
+						HMODULE hMod;
+						DWORD cbNeeded;
+
+						if (EnumProcessModules(hProcess, &hMod, sizeof(hMod),
+							&cbNeeded))
+						{
+							GetModuleBaseNameA(hProcess, hMod, ProcNameFormat,
+								sizeof(ProcNameFormat) / sizeof(CHAR));
+						}
+						CloseHandle(hProcess);
+					}
+					std::sprintf(OutString, "%u: %s", aProcesses[i], ProcNameFormat);
+					DataList.insert(std::make_pair(aProcesses[i], OutString));
+				}
+			}
+			CMDLoader_Vars::Thread.unlock();
+			return true;
+		}
+		CMDLoader_Vars::Thread.unlock();
+		return false;
+	}
 
 	// Process helpers
 	bool StartANewProcess(const char* InPName, char* InPCommandLine, PROCESS_INFORMATION* OutProcessInfo, int32_t* OutErrorCode)
