@@ -155,6 +155,35 @@ namespace CMDLoader_Service_Private
 			InjectionData->Signal = FALIED_INJECTION;
 		}
 	}
+	bool IsProcessSameArch(HANDLE hProcess, void* MainModuleBase, int32_t* OutErrorCode)
+	{
+		IMAGE_DOS_HEADER Dos = { 0 };
+		IMAGE_NT_HEADERS Nt = { 0 };
+		SIZE_T ReadData;
+
+		if (!ReadProcessMemory(hProcess, MainModuleBase, &Dos, sizeof(IMAGE_DOS_HEADER), &ReadData)) {
+			if (OutErrorCode > NULL) {
+				*OutErrorCode = FALIED_READING_PROCESS_MEM;
+			}
+			return false;
+		}
+		if (!ReadProcessMemory(hProcess, (void*)((ULONG_PTR)MainModuleBase + Dos.e_lfanew), &Nt, sizeof(IMAGE_NT_HEADERS), &ReadData)) {
+			if (OutErrorCode > NULL) {
+				*OutErrorCode = FALIED_READING_PROCESS_MEM;
+			}
+			return false;
+		}
+		if (Nt.FileHeader.Machine != VALID_MACHINE) {
+			if (OutErrorCode > NULL) {
+				*OutErrorCode = NULL;
+			}
+			return false;
+		}
+		if (OutErrorCode > NULL) {
+			*OutErrorCode = NULL;
+		}
+		return true;
+	}
 }
 
 namespace CMDLoader_Service
@@ -924,6 +953,8 @@ namespace CMDLoader_Service
 				{
 					CHAR ProcNameFormat[MAX_PATH] = { "Unknown" };
 					CHAR OutString[1024] = { 0 };
+					bool Print = false;
+					int32_t ErrorC;
 
 					hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
 						PROCESS_VM_READ,
@@ -936,13 +967,21 @@ namespace CMDLoader_Service
 						if (EnumProcessModules(hProcess, &hMod, sizeof(hMod),
 							&cbNeeded))
 						{
-							GetModuleBaseNameA(hProcess, hMod, ProcNameFormat,
-								sizeof(ProcNameFormat) / sizeof(CHAR));
+							if (CMDLoader_Service_Private::IsProcessSameArch(hProcess, (void*)hMod, &ErrorC)) {
+								if (ErrorC == NULL) {
+									Print = true;
+
+									GetModuleBaseNameA(hProcess, hMod, ProcNameFormat,
+										sizeof(ProcNameFormat) / sizeof(CHAR));
+								}
+							}
 						}
 						CloseHandle(hProcess);
 					}
-					std::sprintf(OutString, "%u: %s", aProcesses[i], ProcNameFormat);
-					DataList.insert(std::make_pair(aProcesses[i], OutString));
+					if (Print) {
+						std::sprintf(OutString, "%u: %s", aProcesses[i], ProcNameFormat);
+						DataList.insert(std::make_pair(aProcesses[i], OutString));
+					}
 				}
 			}
 			CMDLoader_Vars::Thread.unlock();
@@ -1275,6 +1314,9 @@ namespace CMDLoader_Service
 			break;
 		case FALIED_FILE_READ:
 			ErrorString = "FALIED_FILE_READ";
+			break;
+		case FALIED_READING_PROCESS_MEM:
+			ErrorString = "FALIED_READING_PROCESS_MEM";
 			break;
 		case WARN_32_BIT:
 			ErrorString = "WARN_32_BIT";
