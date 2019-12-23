@@ -71,7 +71,7 @@ namespace CMDLoader_Service_Private
 								for (UINT i = 0; i < CountRelocs; i++, list++) {
 									// Check if the bits contains the right flags
 									if (RLC_FLAG(*list)) {
-										DWORD* PatchData = (DWORD*)((ULONG_PTR)InjectionData->BaseAddr + pBaseRelocation->VirtualAddress + (*list & 0xFFF));
+										DWORD_PTR* PatchData = (DWORD_PTR*)((DWORD_PTR)InjectionData->BaseAddr + pBaseRelocation->VirtualAddress + (*list & 0xFFF));
 										if (PatchData) {
 											*PatchData += Delta;
 										}
@@ -117,7 +117,8 @@ namespace CMDLoader_Service_Private
 				if (InjectionData->pNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size > 0) {
 					IMAGE_TLS_DIRECTORY* pTLSDir = (IMAGE_TLS_DIRECTORY*)((ULONG_PTR)InjectionData->BaseAddr + InjectionData->pNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 					PIMAGE_TLS_CALLBACK Call = nullptr;
-					void** Callback = (void**)pTLSDir->AddressOfCallBacks;
+					void** Callback = nullptr;
+					Callback = (void**)pTLSDir->AddressOfCallBacks;
 					while (Callback && *Callback) {
 						Call = (PIMAGE_TLS_CALLBACK)*Callback;
 						Call(InjectionData->BaseAddr, DLL_PROCESS_ATTACH, NULL);
