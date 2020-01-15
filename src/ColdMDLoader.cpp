@@ -96,17 +96,19 @@ namespace CMDLoader_Service_Private
 
 						if (hLib) {
 							IMAGE_THUNK_DATA* pThunk = (IMAGE_THUNK_DATA*)((ULONG_PTR)InjectionData->BaseAddr + pImportD->FirstThunk);
-							while (pThunk->u1.AddressOfData) {
-								if (pThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) {
-									ULONG_PTR FunctionL = (ULONG_PTR)GetProcAddr(hLib, (LPSTR)IMAGE_ORDINAL(pThunk->u1.Ordinal));
+							IMAGE_THUNK_DATA* pOrigThunk = (IMAGE_THUNK_DATA*)((ULONG_PTR)InjectionData->BaseAddr + pImportD->OriginalFirstThunk);
+							while (pOrigThunk->u1.AddressOfData) {
+								if (pOrigThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) {
+									ULONG_PTR FunctionL = (ULONG_PTR)GetProcAddr(hLib, (LPSTR)IMAGE_ORDINAL(pOrigThunk->u1.Ordinal));
 									pThunk->u1.Function = FunctionL;
 								}
 								else {
-									IMAGE_IMPORT_BY_NAME* pNameImport = (IMAGE_IMPORT_BY_NAME*)((ULONG_PTR)InjectionData->BaseAddr + pThunk->u1.AddressOfData);
+									IMAGE_IMPORT_BY_NAME* pNameImport = (IMAGE_IMPORT_BY_NAME*)((ULONG_PTR)InjectionData->BaseAddr + pOrigThunk->u1.AddressOfData);
 									ULONG_PTR FunctionL = (ULONG_PTR)GetProcAddr(hLib, (LPSTR)pNameImport->Name);
 									pThunk->u1.Function = FunctionL;
 								}
 								pThunk++;
+								pOrigThunk++;
 							}
 						}
 						pImportD++;
@@ -372,7 +374,7 @@ namespace CMDLoader_Service
 			HANDLE RemoteThread;
 			HANDLE FileHandle;
 
-			LPVOID PEHeader;
+			LPVOID PEHeader = NULL;
 			LPVOID FileBData;
 
 			DWORD tmp;
