@@ -89,7 +89,7 @@ namespace CMDLoader_Service_Private
 				// IAT now
 				if (InjectionData->pNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size > 0) {
 					IMAGE_IMPORT_DESCRIPTOR* pImportD = (IMAGE_IMPORT_DESCRIPTOR*)((ULONG_PTR)InjectionData->BaseAddr + InjectionData->pNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
-					while (pImportD->FirstThunk) {
+					while (pImportD->Characteristics && pImportD->Name) {
 						// Load the library
 						auto pName = (LPSTR)((ULONG_PTR)InjectionData->BaseAddr + pImportD->Name);
 						HMODULE hLib = LoadLibraryFA(pName);
